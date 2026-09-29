@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import "./App.css";
 
+const API_URL = "http://localhost:5000/api/books";
+
 function App() {
   const [formData, setFormData] = useState({
     title: "",
@@ -14,32 +16,37 @@ function App() {
   const [books, setBooks] = useState([]);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Get all books from backend
+  // Fetch books when the page loads
+  useEffect(() => {
+    fetchBooks();
+  }, []);
+
   const fetchBooks = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/books");
+      setError("");
+
+      const response = await axios.get(API_URL);
 
       setBooks(response.data);
     } catch (error) {
       console.error("Error fetching books:", error);
-      setError("Unable to fetch books from the server.");
+
+      setError(
+        "Unable to fetch books. Please make sure the backend is running."
+      );
     }
   };
-
-  // Fetch books when page loads
-  useEffect(() => {
-    fetchBooks();
-  }, []);
 
   // Handle form input
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    setFormData({
-      ...formData,
+    setFormData((previousData) => ({
+      ...previousData,
       [name]: value,
-    });
+    }));
   };
 
   // Handle form submission
@@ -48,18 +55,19 @@ function App() {
 
     setMessage("");
     setError("");
+    setLoading(true);
 
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/books",
-        formData
-      );
+      const response = await axios.post(API_URL, {
+        ...formData,
+        publicationYear: Number(formData.publicationYear),
+      });
 
-      console.log(response.data);
+      console.log("Book added:", response.data);
 
       setMessage("Book added successfully!");
 
-      // Clear the form
+      // Clear form
       setFormData({
         title: "",
         author: "",
@@ -68,11 +76,8 @@ function App() {
         publicationYear: "",
       });
 
-      // Add newly created book to the displayed list
-      setBooks((previousBooks) => [
-        response.data.book,
-        ...previousBooks,
-      ]);
+      // Refresh book list
+      fetchBooks();
     } catch (error) {
       console.error("Error adding book:", error);
 
@@ -81,134 +86,203 @@ function App() {
           error.response.data.message || "Failed to add book."
         );
       } else {
-        setError("Unable to connect to the server.");
+        setError(
+          "Unable to connect to the backend server."
+        );
       }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="page">
       <div className="container">
-        <h1>Library Book Management System</h1>
 
-        <form onSubmit={handleSubmit} className="book-form">
-          <div className="form-group">
-            <label>Book Title</label>
-
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="Enter book title"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Author Name</label>
-
-            <input
-              type="text"
-              name="author"
-              value={formData.author}
-              onChange={handleChange}
-              placeholder="Enter author name"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>ISBN</label>
-
-            <input
-              type="text"
-              name="isbn"
-              value={formData.isbn}
-              onChange={handleChange}
-              placeholder="Enter ISBN"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Category</label>
-
-            <input
-              type="text"
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              placeholder="Enter category"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Publication Year</label>
-
-            <input
-              type="number"
-              name="publicationYear"
-              value={formData.publicationYear}
-              onChange={handleChange}
-              placeholder="Enter publication year"
-              required
-            />
-          </div>
-
-          <button type="submit">Add Book</button>
-        </form>
-
-        {/* Success message */}
-        {message && (
-          <p className="success-message">
-            {message}
+        <header className="header">
+          <h1>Library Book Management System</h1>
+          <p>
+            Add and manage library book records
           </p>
-        )}
+        </header>
 
-        {/* Error message */}
-        {error && (
-          <p className="error-message">
-            {error}
-          </p>
-        )}
-      </div>
+        {/* Add Book Form */}
+        <section className="form-section">
+          <h2>Add New Book</h2>
 
-      {/* Book List */}
-      <div className="books-section">
-        <h2>Available Books</h2>
+          <form onSubmit={handleSubmit}>
 
-        {books.length === 0 ? (
-          <p className="no-books">
-            No books have been added yet.
-          </p>
-        ) : (
-          <div className="books-grid">
-            {books.map((book) => (
-              <div className="book-card" key={book._id}>
-                <h3>{book.title}</h3>
+            <div className="form-group">
+              <label htmlFor="title">
+                Book Title
+              </label>
 
-                <p>
-                  <strong>Author:</strong> {book.author}
-                </p>
+              <input
+                id="title"
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="Enter book title"
+                required
+              />
+            </div>
 
-                <p>
-                  <strong>ISBN:</strong> {book.isbn}
-                </p>
+            <div className="form-group">
+              <label htmlFor="author">
+                Author Name
+              </label>
 
-                <p>
-                  <strong>Category:</strong> {book.category}
-                </p>
+              <input
+                id="author"
+                type="text"
+                name="author"
+                value={formData.author}
+                onChange={handleChange}
+                placeholder="Enter author name"
+                required
+              />
+            </div>
 
-                <p>
-                  <strong>Publication Year:</strong>{" "}
-                  {book.publicationYear}
-                </p>
-              </div>
-            ))}
+            <div className="form-group">
+              <label htmlFor="isbn">
+                ISBN
+              </label>
+
+              <input
+                id="isbn"
+                type="text"
+                name="isbn"
+                value={formData.isbn}
+                onChange={handleChange}
+                placeholder="Enter ISBN"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="category">
+                Category
+              </label>
+
+              <input
+                id="category"
+                type="text"
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                placeholder="Enter category"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="publicationYear">
+                Publication Year
+              </label>
+
+              <input
+                id="publicationYear"
+                type="number"
+                name="publicationYear"
+                value={formData.publicationYear}
+                onChange={handleChange}
+                placeholder="Enter publication year"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? "Adding Book..." : "Add Book"}
+            </button>
+
+          </form>
+
+          {message && (
+            <div className="success-message">
+              {message}
+            </div>
+          )}
+
+          {error && (
+            <div className="error-message">
+              {error}
+            </div>
+          )}
+        </section>
+
+        {/* Book Records */}
+        <section className="books-section">
+
+          <div className="books-heading">
+            <h2>Book Records</h2>
+
+            <button
+              type="button"
+              className="refresh-button"
+              onClick={fetchBooks}
+            >
+              Refresh
+            </button>
           </div>
-        )}
+
+          {books.length === 0 ? (
+            <div className="empty-message">
+              No books have been added yet.
+            </div>
+          ) : (
+            <div className="table-container">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>Book Title</th>
+                    <th>Author</th>
+                    <th>ISBN</th>
+                    <th>Category</th>
+                    <th>Publication Year</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {books.map((book) => (
+                    <tr key={book._id}>
+
+                      <td>
+                        {book.title}
+                      </td>
+
+                      <td>
+                        {book.author}
+                      </td>
+
+                      <td>
+                        {book.isbn}
+                      </td>
+
+                      <td>
+                        {book.category}
+                      </td>
+
+                      <td>
+                        {book.publicationYear}
+                      </td>
+
+                    </tr>
+                  ))}
+                </tbody>
+
+              </table>
+
+            </div>
+          )}
+
+        </section>
+
       </div>
     </div>
   );

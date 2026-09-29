@@ -3,18 +3,14 @@ const Book = require("../models/Book");
 
 const router = express.Router();
 
-/*
-  GET /api/books
-
-  Get all books from MongoDB
-*/
+// GET all books
 router.get("/", async (req, res) => {
   try {
     const books = await Book.find().sort({ createdAt: -1 });
 
     res.status(200).json(books);
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching books:", error);
 
     res.status(500).json({
       message: "Failed to fetch books",
@@ -23,11 +19,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-/*
-  POST /api/books
-
-  Add a new book
-*/
+// POST a new book
 router.post("/", async (req, res) => {
   try {
     const {
@@ -51,7 +43,6 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Create new book
     const newBook = new Book({
       title,
       author,
@@ -60,19 +51,17 @@ router.post("/", async (req, res) => {
       publicationYear,
     });
 
-    // Save book to MongoDB
     const savedBook = await newBook.save();
 
-    // Send response
     res.status(201).json({
       message: "Book added successfully",
       book: savedBook,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error adding book:", error);
 
     res.status(500).json({
-      message: "Server error",
+      message: "Failed to add book",
       error: error.message,
     });
   }
